@@ -65,3 +65,16 @@ class StackDriftResult:
     detection_id: str
     timestamp: datetime
     drifted_resource_count: int
+
+
+@dataclass(frozen=True)
+class DetectionRun:
+    """Tracks an in-progress drift detection operation for polling."""
+    detection_id: str
+    stack_id: str
+    stack_name: str
+    status: DetectionStatus
+    started_at: datetime
+    stack_status: Optional[StackStatus] = None
+    drifted_resource_count: Optional[int] = None
+    status_reason: Optional[str] = None

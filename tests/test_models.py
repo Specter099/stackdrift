@@ -8,6 +8,7 @@ from stackdrift.models import (
     PropertyDiff,
     ResourceDrift,
     StackDriftResult,
+    DetectionRun,
 )
 
 
@@ -211,6 +212,84 @@ def test_stack_drift_result_is_frozen():
 
     try:
         result.stack_status = StackStatus.DRIFTED
+        assert False, "Should not be able to modify frozen dataclass"
+    except AttributeError:
+        pass  # Expected
+
+
+def test_detection_run_in_progress():
+    """Test DetectionRun dataclass for in-progress detection."""
+    started_at = datetime(2026, 2, 25, 14, 0, 0)
+
+    run = DetectionRun(
+        detection_id="abc123",
+        stack_id="arn:aws:cloudformation:us-east-1:123456789012:stack/my-stack/uuid",
+        stack_name="my-stack",
+        status=DetectionStatus.IN_PROGRESS,
+        started_at=started_at
+    )
+
+    assert run.detection_id == "abc123"
+    assert run.stack_id == "arn:aws:cloudformation:us-east-1:123456789012:stack/my-stack/uuid"
+    assert run.stack_name == "my-stack"
+    assert run.status == DetectionStatus.IN_PROGRESS
+    assert run.started_at == started_at
+    assert run.stack_status is None
+    assert run.drifted_resource_count is None
+    assert run.status_reason is None
+
+
+def test_detection_run_complete():
+    """Test DetectionRun dataclass for completed detection."""
+    started_at = datetime(2026, 2, 25, 14, 0, 0)
+
+    run = DetectionRun(
+        detection_id="abc123",
+        stack_id="arn:aws:cloudformation:us-east-1:123456789012:stack/my-stack/uuid",
+        stack_name="my-stack",
+        status=DetectionStatus.COMPLETE,
+        started_at=started_at,
+        stack_status=StackStatus.DRIFTED,
+        drifted_resource_count=3
+    )
+
+    assert run.status == DetectionStatus.COMPLETE
+    assert run.stack_status == StackStatus.DRIFTED
+    assert run.drifted_resource_count == 3
+    assert run.status_reason is None
+
+
+def test_detection_run_failed():
+    """Test DetectionRun dataclass for failed detection."""
+    started_at = datetime(2026, 2, 25, 14, 0, 0)
+
+    run = DetectionRun(
+        detection_id="abc123",
+        stack_id="arn:aws:cloudformation:us-east-1:123456789012:stack/my-stack/uuid",
+        stack_name="my-stack",
+        status=DetectionStatus.FAILED,
+        started_at=started_at,
+        status_reason="Stack does not exist"
+    )
+
+    assert run.status == DetectionStatus.FAILED
+    assert run.status_reason == "Stack does not exist"
+    assert run.stack_status is None
+    assert run.drifted_resource_count is None
+
+
+def test_detection_run_is_frozen():
+    """Test DetectionRun is immutable."""
+    run = DetectionRun(
+        detection_id="test",
+        stack_id="arn",
+        stack_name="test",
+        status=DetectionStatus.IN_PROGRESS,
+        started_at=datetime.now()
+    )
+
+    try:
+        run.status = DetectionStatus.COMPLETE
         assert False, "Should not be able to modify frozen dataclass"
     except AttributeError:
         pass  # Expected
