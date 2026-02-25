@@ -1,6 +1,6 @@
-# Contributing to StackDrift
+# Contributing to stackdrift
 
-Thank you for your interest in contributing to StackDrift! This guide will help you get started.
+Thanks for your interest in contributing to stackdrift! This guide will help you get started.
 
 ## Development Setup
 
@@ -9,48 +9,52 @@ git clone https://github.com/Specter099/stackdrift.git
 cd stackdrift
 python -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
-pip install -r requirements-dev.txt
+pip install -e ".[dev]"
 ```
 
 ## Workflow
 
-1. Fork the repository and create a feature branch from `main`.
-2. Make your changes in small, focused commits.
-3. Add or update tests for any new functionality.
-4. Ensure all checks pass before submitting:
+1. Fork the repo and create a feature branch from `main`.
+2. Make your changes. Add tests for new functionality.
+3. Run the test suite and linter:
    ```bash
-   ruff format .
-   ruff check .
    pytest
+   ruff check src/ tests/
+   ruff format --check .
    ```
-5. Open a pull request targeting `main`.
+4. Commit with a clear message describing what and why.
+5. Open a pull request against `main`.
 
 ## Pull Request Guidelines
 
-- Keep PRs focused on a single change.
-- Write a clear title and description explaining **what** and **why**.
-- Link any related issues.
-- All CI checks must pass before review.
-
-## Coding Standards
-
-- Follow [PEP 8](https://peps.python.org/pep-0008/) conventions.
-- Use [ruff](https://docs.astral.sh/ruff/) for linting and formatting.
-- Write docstrings for public functions and classes.
-- Add type hints to function signatures.
+- Keep PRs focused — one feature or fix per PR.
+- Include tests for new behavior.
+- Update documentation if you change user-facing behavior.
+- All CI checks must pass before merge.
 
 ## Reporting Bugs
 
-- Use the **Bug Report** issue template.
-- Include steps to reproduce, expected behavior, and actual behavior.
-- Include your Python version and OS.
+Use the [bug report template](https://github.com/Specter099/stackdrift/issues/new?template=bug_report.yml) and include:
+
+- Steps to reproduce
+- Expected vs actual behavior
+- stackdrift version and Python version
+- Relevant AWS environment details (region, stack names)
 
 ## Requesting Features
 
-- Use the **Feature Request** issue template.
-- Describe the problem you're trying to solve, not just the solution.
+Use the [feature request template](https://github.com/Specter099/stackdrift/issues/new?template=feature_request.yml) and describe:
 
-## Code of Conduct
+- The problem you're trying to solve
+- Your proposed solution
+- Any alternatives you've considered
 
-By participating, you agree to abide by our [Code of Conduct](CODE_OF_CONDUCT.md).
+## Code Style
+
+- Follow existing patterns in the codebase.
+- We use [Ruff](https://docs.astral.sh/ruff/) for linting and formatting.
+- Write clear, self-documenting code. Add comments only where the logic isn't obvious.
+
+## Security Vulnerabilities
+
+Do **not** open a public issue. See [SECURITY.md](SECURITY.md) for responsible disclosure instructions.
