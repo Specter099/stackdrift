@@ -1,5 +1,5 @@
 """Tests for stackdrift data models."""
-from stackdrift.models import DetectionStatus, StackStatus, ResourceStatus, DiffType
+from stackdrift.models import DetectionStatus, StackStatus, ResourceStatus, DiffType, PropertyDiff
 
 
 def test_detection_status_values():
@@ -38,3 +38,34 @@ def test_enums_are_string_enums():
     assert isinstance(StackStatus.DRIFTED, str)
     assert isinstance(ResourceStatus.MODIFIED, str)
     assert isinstance(DiffType.NOT_EQUAL, str)
+
+
+def test_property_diff_creation():
+    """Test PropertyDiff dataclass can be created with all fields."""
+    diff = PropertyDiff(
+        property_path="/Properties/DelaySeconds",
+        expected_value="0",
+        actual_value="5",
+        diff_type=DiffType.NOT_EQUAL
+    )
+
+    assert diff.property_path == "/Properties/DelaySeconds"
+    assert diff.expected_value == "0"
+    assert diff.actual_value == "5"
+    assert diff.diff_type == DiffType.NOT_EQUAL
+
+
+def test_property_diff_is_frozen():
+    """Test PropertyDiff is immutable."""
+    diff = PropertyDiff(
+        property_path="/Properties/Test",
+        expected_value="a",
+        actual_value="b",
+        diff_type=DiffType.NOT_EQUAL
+    )
+
+    try:
+        diff.expected_value = "changed"
+        assert False, "Should not be able to modify frozen dataclass"
+    except AttributeError:
+        pass  # Expected

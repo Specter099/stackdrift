@@ -33,3 +33,12 @@ class ResourceStatus(str, Enum):
 class DiffType(str, Enum):
     """Property difference type."""
     NOT_EQUAL = "NOT_EQUAL"
+
+
+@dataclass(frozen=True)
+class PropertyDiff:
+    """A single property difference between expected and actual configuration."""
+    property_path: str
+    expected_value: str
+    actual_value: str
+    diff_type: DiffType
