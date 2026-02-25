@@ -1,14 +1,16 @@
 """Tests for stackdrift data models."""
+
 from datetime import datetime
+
 from stackdrift.models import (
+    DetectionRun,
     DetectionStatus,
-    StackStatus,
-    ResourceStatus,
     DiffType,
     PropertyDiff,
     ResourceDrift,
+    ResourceStatus,
     StackDriftResult,
-    DetectionRun,
+    StackStatus,
 )
 
 
@@ -56,7 +58,7 @@ def test_property_diff_creation():
         property_path="/Properties/DelaySeconds",
         expected_value="0",
         actual_value="5",
-        diff_type=DiffType.NOT_EQUAL
+        diff_type=DiffType.NOT_EQUAL,
     )
 
     assert diff.property_path == "/Properties/DelaySeconds"
@@ -71,7 +73,7 @@ def test_property_diff_is_frozen():
         property_path="/Properties/Test",
         expected_value="a",
         actual_value="b",
-        diff_type=DiffType.NOT_EQUAL
+        diff_type=DiffType.NOT_EQUAL,
     )
 
     try:
@@ -95,10 +97,10 @@ def test_resource_drift_creation():
                 property_path="/Properties/DelaySeconds",
                 expected_value="0",
                 actual_value="5",
-                diff_type=DiffType.NOT_EQUAL
+                diff_type=DiffType.NOT_EQUAL,
             )
         ],
-        timestamp=timestamp
+        timestamp=timestamp,
     )
 
     assert drift.logical_id == "MyQueue"
@@ -117,7 +119,7 @@ def test_resource_drift_in_sync_has_empty_diffs():
         resource_type="AWS::S3::Bucket",
         status=ResourceStatus.IN_SYNC,
         property_diffs=[],
-        timestamp=datetime.now()
+        timestamp=datetime.now(),
     )
 
     assert drift.status == ResourceStatus.IN_SYNC
@@ -132,7 +134,7 @@ def test_resource_drift_is_frozen():
         resource_type="AWS::Test::Resource",
         status=ResourceStatus.IN_SYNC,
         property_diffs=[],
-        timestamp=datetime.now()
+        timestamp=datetime.now(),
     )
 
     try:
@@ -161,15 +163,15 @@ def test_stack_drift_result_creation():
                         property_path="/Properties/DelaySeconds",
                         expected_value="0",
                         actual_value="5",
-                        diff_type=DiffType.NOT_EQUAL
+                        diff_type=DiffType.NOT_EQUAL,
                     )
                 ],
-                timestamp=timestamp
+                timestamp=timestamp,
             )
         ],
         detection_id="b78ac9b0-dec1-11e7-a451-503a3example",
         timestamp=timestamp,
-        drifted_resource_count=1
+        drifted_resource_count=1,
     )
 
     assert result.stack_id == "arn:aws:cloudformation:us-east-1:123456789012:stack/my-stack/uuid"
@@ -190,7 +192,7 @@ def test_stack_drift_result_in_sync():
         resource_drifts=[],
         detection_id="detection-id",
         timestamp=datetime.now(),
-        drifted_resource_count=0
+        drifted_resource_count=0,
     )
 
     assert result.stack_status == StackStatus.IN_SYNC
@@ -207,7 +209,7 @@ def test_stack_drift_result_is_frozen():
         resource_drifts=[],
         detection_id="id",
         timestamp=datetime.now(),
-        drifted_resource_count=0
+        drifted_resource_count=0,
     )
 
     try:
@@ -226,7 +228,7 @@ def test_detection_run_in_progress():
         stack_id="arn:aws:cloudformation:us-east-1:123456789012:stack/my-stack/uuid",
         stack_name="my-stack",
         status=DetectionStatus.IN_PROGRESS,
-        started_at=started_at
+        started_at=started_at,
     )
 
     assert run.detection_id == "abc123"
@@ -250,7 +252,7 @@ def test_detection_run_complete():
         status=DetectionStatus.COMPLETE,
         started_at=started_at,
         stack_status=StackStatus.DRIFTED,
-        drifted_resource_count=3
+        drifted_resource_count=3,
     )
 
     assert run.status == DetectionStatus.COMPLETE
@@ -269,7 +271,7 @@ def test_detection_run_failed():
         stack_name="my-stack",
         status=DetectionStatus.FAILED,
         started_at=started_at,
-        status_reason="Stack does not exist"
+        status_reason="Stack does not exist",
     )
 
     assert run.status == DetectionStatus.FAILED
@@ -285,7 +287,7 @@ def test_detection_run_is_frozen():
         stack_id="arn",
         stack_name="test",
         status=DetectionStatus.IN_PROGRESS,
-        started_at=datetime.now()
+        started_at=datetime.now(),
     )
 
     try:
