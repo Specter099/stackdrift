@@ -4,7 +4,7 @@ import json
 from datetime import datetime
 
 from stackdrift.analyzer import AnalyzedDrift, Severity
-from stackdrift.formatter import format_json, format_markdown, format_table
+from stackdrift.formatter import _escape_md_cell, format_json, format_markdown, format_table
 from stackdrift.models import (
     DiffType,
     PropertyDiff,
@@ -117,3 +117,37 @@ def test_format_table_returns_string():
 def test_format_table_empty():
     output = format_table([])
     assert "No drift detected" in output
+
+
+def test_format_json_redact():
+    analyzed = [_make_analyzed_drift(drifted=True)]
+    output = format_json(analyzed, redact=True)
+    data = json.loads(output)
+
+    pd = data["stacks"][0]["resources"][0]["property_diffs"][0]
+    assert pd["expected_value"] == "[REDACTED]"
+    assert pd["actual_value"] == "[REDACTED]"
+
+
+def test_format_markdown_redact():
+    analyzed = [_make_analyzed_drift(drifted=True)]
+    output = format_markdown(analyzed, redact=True)
+
+    assert "[REDACTED]" in output
+    assert "`0`" not in output
+    assert "`5`" not in output
+
+
+def test_format_table_redact():
+    analyzed = [_make_analyzed_drift(drifted=True)]
+    output = format_table(analyzed, redact=True)
+
+    assert "[REDACTED]" in output
+
+
+def test_escape_md_cell_pipes():
+    assert _escape_md_cell("a|b") == "a\\|b"
+
+
+def test_escape_md_cell_newlines():
+    assert _escape_md_cell("a\nb") == "a b"

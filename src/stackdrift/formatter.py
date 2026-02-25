@@ -16,8 +16,15 @@ SEVERITY_COLORS = {
     Severity.LOW: "dim",
 }
 
+REDACTED = "[REDACTED]"
 
-def format_json(analyzed: list[AnalyzedDrift]) -> str:
+
+def _escape_md_cell(value: str) -> str:
+    """Escape characters that break markdown table cells."""
+    return value.replace("|", "\\|").replace("\n", " ")
+
+
+def format_json(analyzed: list[AnalyzedDrift], *, redact: bool = False) -> str:
     """Format results as JSON."""
     drifted_count = sum(1 for a in analyzed if a.result.stack_status == StackStatus.DRIFTED)
 
@@ -37,8 +44,8 @@ def format_json(analyzed: list[AnalyzedDrift]) -> str:
                     "property_diffs": [
                         {
                             "property_path": pd.property_path,
-                            "expected_value": pd.expected_value,
-                            "actual_value": pd.actual_value,
+                            "expected_value": REDACTED if redact else pd.expected_value,
+                            "actual_value": REDACTED if redact else pd.actual_value,
                         }
                         for pd in rd.property_diffs
                     ],
@@ -68,7 +75,7 @@ def format_json(analyzed: list[AnalyzedDrift]) -> str:
     )
 
 
-def format_markdown(analyzed: list[AnalyzedDrift]) -> str:
+def format_markdown(analyzed: list[AnalyzedDrift], *, redact: bool = False) -> str:
     """Format results as Markdown."""
     if not analyzed:
         return "No drift detected."
@@ -85,7 +92,8 @@ def format_markdown(analyzed: list[AnalyzedDrift]) -> str:
 
     for a in drifted:
         severity_label = f" [{a.stack_severity.name}]" if a.stack_severity else ""
-        lines.append(f"### {a.result.stack_name} — DRIFTED{severity_label}")
+        stack_name = _escape_md_cell(a.result.stack_name)
+        lines.append(f"### {stack_name} — DRIFTED{severity_label}")
         lines.append("")
         lines.append("| Resource | Type | Status | Severity | Property | Expected | Actual |")
         lines.append("|----------|------|--------|----------|----------|----------|--------|")
@@ -94,17 +102,21 @@ def format_markdown(analyzed: list[AnalyzedDrift]) -> str:
             if rd.status == ResourceStatus.IN_SYNC:
                 continue
             sev = a.resource_severities.get(rd.logical_id, Severity.LOW).name
+            logical_id = _escape_md_cell(rd.logical_id)
+            resource_type = _escape_md_cell(rd.resource_type)
             if rd.property_diffs:
                 for pd in rd.property_diffs:
+                    prop_path = _escape_md_cell(pd.property_path)
+                    expected = REDACTED if redact else _escape_md_cell(pd.expected_value)
+                    actual = REDACTED if redact else _escape_md_cell(pd.actual_value)
                     lines.append(
-                        f"| {rd.logical_id} | {rd.resource_type} | {rd.status.value} "
-                        f"| {sev} | `{pd.property_path}` "
-                        f"| `{pd.expected_value}` | `{pd.actual_value}` |"
+                        f"| {logical_id} | {resource_type} | {rd.status.value} "
+                        f"| {sev} | `{prop_path}` "
+                        f"| `{expected}` | `{actual}` |"
                     )
             else:
                 lines.append(
-                    f"| {rd.logical_id} | {rd.resource_type} | {rd.status.value} "
-                    f"| {sev} | — | — | — |"
+                    f"| {logical_id} | {resource_type} | {rd.status.value} | {sev} | — | — | — |"
                 )
 
         lines.append("")
@@ -112,7 +124,7 @@ def format_markdown(analyzed: list[AnalyzedDrift]) -> str:
     return "\n".join(lines)
 
 
-def format_table(analyzed: list[AnalyzedDrift]) -> str:
+def format_table(analyzed: list[AnalyzedDrift], *, redact: bool = False) -> str:
     """Format results as a Rich tree view, returned as a string."""
     if not analyzed:
         return "No drift detected."
@@ -142,11 +154,11 @@ def format_table(analyzed: list[AnalyzedDrift]) -> str:
                 )
             )
             for pd in rd.property_diffs:
+                expected = REDACTED if redact else pd.expected_value
+                actual = REDACTED if redact else pd.actual_value
                 resource_branch.add(
                     Text.from_markup(
-                        f"{pd.property_path}: "
-                        f"[green]{pd.expected_value}[/green] → "
-                        f"[red]{pd.actual_value}[/red]"
+                        f"{pd.property_path}: [green]{expected}[/green] → [red]{actual}[/red]"
                     )
                 )
 

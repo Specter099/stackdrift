@@ -3,6 +3,7 @@
 from datetime import datetime
 
 from stackdrift.models import (
+    DetectionResult,
     DetectionRun,
     DetectionStatus,
     DiffType,
@@ -41,6 +42,8 @@ def test_resource_status_values():
 
 def test_diff_type_values():
     """Test DiffType enum has correct AWS API values."""
+    assert DiffType.ADD.value == "ADD"
+    assert DiffType.REMOVE.value == "REMOVE"
     assert DiffType.NOT_EQUAL.value == "NOT_EQUAL"
 
 
@@ -295,3 +298,25 @@ def test_detection_run_is_frozen():
         assert False, "Should not be able to modify frozen dataclass"
     except AttributeError:
         pass  # Expected
+
+
+def test_detection_result_creation():
+    """Test DetectionResult tracks results and failed stacks."""
+    result = DetectionResult(
+        results=[
+            StackDriftResult(
+                stack_id="arn",
+                stack_name="good-stack",
+                stack_status=StackStatus.IN_SYNC,
+                resource_drifts=[],
+                detection_id="det-1",
+                timestamp=datetime.now(),
+                drifted_resource_count=0,
+            )
+        ],
+        failed_stacks=["bad-stack"],
+    )
+
+    assert len(result.results) == 1
+    assert result.results[0].stack_name == "good-stack"
+    assert result.failed_stacks == ["bad-stack"]

@@ -110,32 +110,48 @@ class CloudFormationClient:
 
     def get_resource_drifts(self, stack_name: str) -> list[ResourceDrift]:
         """Fetch resource-level drift details for a stack."""
-        resp = self._client.describe_stack_resource_drifts(
-            StackName=stack_name,
-            StackResourceDriftStatusFilters=["MODIFIED", "DELETED", "NOT_CHECKED", "IN_SYNC"],
-        )
-
         results = []
-        for resource in resp["StackResourceDrifts"]:
-            property_diffs = [
-                PropertyDiff(
-                    property_path=pd["PropertyPath"],
-                    expected_value=pd["ExpectedValue"],
-                    actual_value=pd["ActualValue"],
-                    diff_type=DiffType(pd["DifferenceType"]),
-                )
-                for pd in resource.get("PropertyDifferences", [])
-            ]
+        next_token = None
 
-            results.append(
-                ResourceDrift(
-                    logical_id=resource["LogicalResourceId"],
-                    physical_id=resource["PhysicalResourceId"],
-                    resource_type=resource["ResourceType"],
-                    status=ResourceStatus(resource["StackResourceDriftStatus"]),
-                    property_diffs=property_diffs,
-                    timestamp=resource["Timestamp"],
+        while True:
+            kwargs: dict = {
+                "StackName": stack_name,
+                "StackResourceDriftStatusFilters": [
+                    "MODIFIED",
+                    "DELETED",
+                    "NOT_CHECKED",
+                    "IN_SYNC",
+                ],
+            }
+            if next_token:
+                kwargs["NextToken"] = next_token
+
+            resp = self._client.describe_stack_resource_drifts(**kwargs)
+
+            for resource in resp["StackResourceDrifts"]:
+                property_diffs = [
+                    PropertyDiff(
+                        property_path=pd["PropertyPath"],
+                        expected_value=pd["ExpectedValue"],
+                        actual_value=pd["ActualValue"],
+                        diff_type=DiffType(pd["DifferenceType"]),
+                    )
+                    for pd in resource.get("PropertyDifferences", [])
+                ]
+
+                results.append(
+                    ResourceDrift(
+                        logical_id=resource["LogicalResourceId"],
+                        physical_id=resource["PhysicalResourceId"],
+                        resource_type=resource["ResourceType"],
+                        status=ResourceStatus(resource["StackResourceDriftStatus"]),
+                        property_diffs=property_diffs,
+                        timestamp=resource["Timestamp"],
+                    )
                 )
-            )
+
+            next_token = resp.get("NextToken")
+            if not next_token:
+                break
 
         return results
