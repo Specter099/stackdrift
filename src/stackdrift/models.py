@@ -53,3 +53,15 @@ class ResourceDrift:
     status: ResourceStatus
     property_diffs: list[PropertyDiff]
     timestamp: datetime
+
+
+@dataclass(frozen=True)
+class StackDriftResult:
+    """Complete drift detection results for a single stack."""
+    stack_id: str
+    stack_name: str
+    stack_status: StackStatus
+    resource_drifts: list[ResourceDrift]
+    detection_id: str
+    timestamp: datetime
+    drifted_resource_count: int

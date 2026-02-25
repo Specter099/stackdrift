@@ -7,6 +7,7 @@ from stackdrift.models import (
     DiffType,
     PropertyDiff,
     ResourceDrift,
+    StackDriftResult,
 )
 
 
@@ -135,6 +136,81 @@ def test_resource_drift_is_frozen():
 
     try:
         drift.status = ResourceStatus.MODIFIED
+        assert False, "Should not be able to modify frozen dataclass"
+    except AttributeError:
+        pass  # Expected
+
+
+def test_stack_drift_result_creation():
+    """Test StackDriftResult dataclass can be created with all fields."""
+    timestamp = datetime(2026, 2, 25, 14, 0, 0)
+
+    result = StackDriftResult(
+        stack_id="arn:aws:cloudformation:us-east-1:123456789012:stack/my-stack/uuid",
+        stack_name="my-stack",
+        stack_status=StackStatus.DRIFTED,
+        resource_drifts=[
+            ResourceDrift(
+                logical_id="MyQueue",
+                physical_id="queue-url",
+                resource_type="AWS::SQS::Queue",
+                status=ResourceStatus.MODIFIED,
+                property_diffs=[
+                    PropertyDiff(
+                        property_path="/Properties/DelaySeconds",
+                        expected_value="0",
+                        actual_value="5",
+                        diff_type=DiffType.NOT_EQUAL
+                    )
+                ],
+                timestamp=timestamp
+            )
+        ],
+        detection_id="b78ac9b0-dec1-11e7-a451-503a3example",
+        timestamp=timestamp,
+        drifted_resource_count=1
+    )
+
+    assert result.stack_id == "arn:aws:cloudformation:us-east-1:123456789012:stack/my-stack/uuid"
+    assert result.stack_name == "my-stack"
+    assert result.stack_status == StackStatus.DRIFTED
+    assert len(result.resource_drifts) == 1
+    assert result.detection_id == "b78ac9b0-dec1-11e7-a451-503a3example"
+    assert result.timestamp == timestamp
+    assert result.drifted_resource_count == 1
+
+
+def test_stack_drift_result_in_sync():
+    """Test StackDriftResult for stack with no drift."""
+    result = StackDriftResult(
+        stack_id="arn:aws:cloudformation:us-east-1:123456789012:stack/clean-stack/uuid",
+        stack_name="clean-stack",
+        stack_status=StackStatus.IN_SYNC,
+        resource_drifts=[],
+        detection_id="detection-id",
+        timestamp=datetime.now(),
+        drifted_resource_count=0
+    )
+
+    assert result.stack_status == StackStatus.IN_SYNC
+    assert result.resource_drifts == []
+    assert result.drifted_resource_count == 0
+
+
+def test_stack_drift_result_is_frozen():
+    """Test StackDriftResult is immutable."""
+    result = StackDriftResult(
+        stack_id="arn",
+        stack_name="test",
+        stack_status=StackStatus.IN_SYNC,
+        resource_drifts=[],
+        detection_id="id",
+        timestamp=datetime.now(),
+        drifted_resource_count=0
+    )
+
+    try:
+        result.stack_status = StackStatus.DRIFTED
         assert False, "Should not be able to modify frozen dataclass"
     except AttributeError:
         pass  # Expected
