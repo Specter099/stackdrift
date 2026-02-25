@@ -1,5 +1,6 @@
 """CLI entrypoint for stackdrift."""
 
+import logging
 import os
 import sys
 
@@ -28,8 +29,19 @@ from stackdrift.models import StackStatus
 )
 @click.option("--post-slack", is_flag=True, help="Post report to Slack webhook.")
 @click.option("--post-github-pr", type=int, default=None, help="Post report as GitHub PR comment.")
-@click.option("--max-concurrent", type=int, default=5, help="Max concurrent drift detections.")
+@click.option(
+    "--max-concurrent",
+    type=click.IntRange(1, 50),
+    default=5,
+    help="Max concurrent drift detections (1-50).",
+)
 @click.option("--region", default=None, help="AWS region.")
+@click.option(
+    "--redact-values",
+    is_flag=True,
+    help="Redact expected/actual values in output.",
+)
+@click.option("--quiet", is_flag=True, help="Suppress warning messages.")
 def main(
     stack,
     prefix,
@@ -40,8 +52,13 @@ def main(
     post_github_pr,
     max_concurrent,
     region,
+    redact_values,
+    quiet,
 ):
     """Detect CloudFormation stack drift."""
+    if quiet:
+        logging.getLogger("stackdrift").setLevel(logging.ERROR)
+
     tags = None
     if tag:
         key, _, value = tag.partition("=")
@@ -50,11 +67,20 @@ def main(
     client = CloudFormationClient(region=region)
     detector = Detector(client, max_concurrent=max_concurrent)
 
-    results = detector.detect(
+    detection = detector.detect(
         stack_names=stack or None,
         prefix=prefix,
         tags=tags,
     )
+
+    results = detection.results
+
+    if detection.failed_stacks:
+        click.echo(
+            f"Warning: drift detection failed for {len(detection.failed_stacks)} stack(s): "
+            + ", ".join(detection.failed_stacks),
+            err=True,
+        )
 
     if drifted_only:
         results = [r for r in results if r.stack_status == StackStatus.DRIFTED]
@@ -66,7 +92,7 @@ def main(
         "json": format_json,
         "markdown": format_markdown,
     }
-    output = formatters[output_format](analyzed)
+    output = formatters[output_format](analyzed, redact=redact_values)
     click.echo(output)
 
     if post_slack:
@@ -74,7 +100,7 @@ def main(
         if not webhook_url:
             click.echo("Error: STACKDRIFT_SLACK_WEBHOOK env var not set.", err=True)
             sys.exit(2)
-        md_output = format_markdown(analyzed)
+        md_output = format_markdown(analyzed, redact=redact_values)
         post_to_slack(report=md_output, webhook_url=webhook_url)
 
     if post_github_pr is not None:
@@ -83,8 +109,11 @@ def main(
         if not token or not repo:
             click.echo("Error: GITHUB_TOKEN and GITHUB_REPO env vars required.", err=True)
             sys.exit(2)
-        md_output = format_markdown(analyzed)
+        md_output = format_markdown(analyzed, redact=redact_values)
         post_to_github_pr(body=md_output, repo=repo, pr_number=post_github_pr, token=token)
+
+    if detection.failed_stacks:
+        sys.exit(2)
 
     has_drift = any(r.result.stack_status == StackStatus.DRIFTED for r in analyzed)
     sys.exit(1 if has_drift else 0)

@@ -12,11 +12,11 @@ def test_post_to_slack_sends_payload():
     with patch("stackdrift.integrations.slack.requests.post") as mock_post:
         mock_post.return_value = MagicMock(status_code=200)
 
-        post_to_slack("## Drift Report\nSome drift", "https://hooks.slack.example.com/test")
+        post_to_slack("## Drift Report\nSome drift", "https://hooks.slack.com/services/T00/B00/xxx")
 
         mock_post.assert_called_once()
         call_kwargs = mock_post.call_args
-        assert call_kwargs[0][0] == "https://hooks.slack.example.com/test"
+        assert call_kwargs[0][0] == "https://hooks.slack.com/services/T00/B00/xxx"
         payload = call_kwargs[1]["json"]
         assert "Drift Report" in payload["text"]
 
@@ -27,7 +27,26 @@ def test_post_to_slack_raises_on_failure():
         mock_post.return_value.raise_for_status.side_effect = Exception("500 Server Error")
 
         with pytest.raises(Exception, match="500"):
-            post_to_slack("report", "https://hooks.slack.example.com/test")
+            post_to_slack("report", "https://hooks.slack.com/services/T00/B00/xxx")
+
+
+def test_post_to_slack_rejects_non_slack_host():
+    with pytest.raises(ValueError, match="Invalid Slack webhook host"):
+        post_to_slack("report", "https://evil.example.com/webhook")
+
+
+def test_post_to_slack_rejects_http():
+    with pytest.raises(ValueError, match="must use HTTPS"):
+        post_to_slack("report", "http://hooks.slack.com/services/T00/B00/xxx")
+
+
+def test_post_to_slack_allows_gov_cloud():
+    with patch("stackdrift.integrations.slack.requests.post") as mock_post:
+        mock_post.return_value = MagicMock(status_code=200)
+
+        post_to_slack("report", "https://hooks.slack-gov.com/services/T00/B00/xxx")
+
+        mock_post.assert_called_once()
 
 
 def test_post_to_github_pr_creates_comment():
@@ -38,7 +57,7 @@ def test_post_to_github_pr_creates_comment():
             body="## Drift Report",
             repo="Specter099/stackdrift",
             pr_number=42,
-            token="ghp_test123",
+            token="test-token-not-real",
         )
 
         mock_post.assert_called_once()
@@ -56,3 +75,13 @@ def test_post_to_github_pr_raises_on_failure():
 
         with pytest.raises(Exception, match="403"):
             post_to_github_pr("report", "owner/repo", 1, "bad-token")
+
+
+def test_post_to_github_pr_rejects_invalid_repo():
+    with pytest.raises(ValueError, match="Invalid GitHub repo format"):
+        post_to_github_pr("report", "../../evil-path", 1, "token")
+
+
+def test_post_to_github_pr_rejects_repo_with_slashes():
+    with pytest.raises(ValueError, match="Invalid GitHub repo format"):
+        post_to_github_pr("report", "owner/repo/extra", 1, "token")

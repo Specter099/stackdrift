@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 
 from stackdrift.aws.client import CloudFormationClient
 from stackdrift.models import (
+    DetectionResult,
     DetectionStatus,
     StackDriftResult,
 )
@@ -34,7 +35,7 @@ class Detector:
         stack_names: list[str] | None = None,
         prefix: str | None = None,
         tags: dict[str, str] | None = None,
-    ) -> list[StackDriftResult]:
+    ) -> DetectionResult:
         """Run drift detection on matching stacks and return results."""
         stacks = self._client.list_stacks(
             stack_names=stack_names,
@@ -43,9 +44,10 @@ class Detector:
         )
 
         if not stacks:
-            return []
+            return DetectionResult(results=[], failed_stacks=[])
 
         results: list[StackDriftResult] = []
+        failed_stacks: list[str] = []
 
         with ThreadPoolExecutor(max_workers=self._max_concurrent) as executor:
             futures = {executor.submit(self._detect_stack, s["stack_name"]): s for s in stacks}
@@ -55,10 +57,13 @@ class Detector:
                     result = future.result()
                     if result is not None:
                         results.append(result)
+                    else:
+                        failed_stacks.append(stack_info["stack_name"])
                 except Exception:
                     logger.exception("Failed to detect drift for %s", stack_info["stack_name"])
+                    failed_stacks.append(stack_info["stack_name"])
 
-        return results
+        return DetectionResult(results=results, failed_stacks=failed_stacks)
 
     def _detect_stack(self, stack_name: str) -> StackDriftResult | None:
         """Detect drift for a single stack. Returns None if detection fails."""

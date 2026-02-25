@@ -36,6 +36,8 @@ class ResourceStatus(StrEnum):
 class DiffType(StrEnum):
     """Property difference type."""
 
+    ADD = "ADD"
+    REMOVE = "REMOVE"
     NOT_EQUAL = "NOT_EQUAL"
 
 
@@ -86,3 +88,11 @@ class DetectionRun:
     stack_status: StackStatus | None = None
     drifted_resource_count: int | None = None
     status_reason: str | None = None
+
+
+@dataclass(frozen=True)
+class DetectionResult:
+    """Aggregated results from a drift detection run across multiple stacks."""
+
+    results: list[StackDriftResult]
+    failed_stacks: list[str]

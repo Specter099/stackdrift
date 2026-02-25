@@ -25,10 +25,10 @@ classifiers = [
     "Topic :: System :: Systems Administration",
 ]
 dependencies = [
-    "boto3>=1.34",
-    "click>=8.1",
-    "rich>=13.7",
-    "requests>=2.31",
+    "boto3>=1.34,<2",
+    "click>=8.1,<9",
+    "rich>=13.7,<15",
+    "requests>=2.31,<3",
 ]
 
 [project.scripts]
