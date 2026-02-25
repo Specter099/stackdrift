@@ -10,7 +10,7 @@
 
 ---
 
-## P1 — Foundation (Do Now)
+## P1 — Foundation — Done
 
 These are table stakes. Without them, the repo isn't usable by others.
 
@@ -19,7 +19,7 @@ These are table stakes. Without them, the repo isn't usable by others.
 - [x] **GitHub Actions CI** — Ruff lint + format check, pytest across Python 3.10/3.11/3.12.
 - [x] **Required status checks** — `lint`, `test (3.10)`, `test (3.11)`, `test (3.12)` required to merge to `main`.
 
-## P2 — Contributor Experience (Do Soon)
+## P2 — Contributor Experience — Done
 
 These make the difference between people starring and people contributing.
 
