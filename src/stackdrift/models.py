@@ -42,3 +42,14 @@ class PropertyDiff:
     expected_value: str
     actual_value: str
     diff_type: DiffType
+
+
+@dataclass(frozen=True)
+class ResourceDrift:
+    """Drift information for a single CloudFormation resource."""
+    logical_id: str
+    physical_id: str
+    resource_type: str
+    status: ResourceStatus
+    property_diffs: list[PropertyDiff]
+    timestamp: datetime

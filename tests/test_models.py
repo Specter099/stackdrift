@@ -1,5 +1,13 @@
 """Tests for stackdrift data models."""
-from stackdrift.models import DetectionStatus, StackStatus, ResourceStatus, DiffType, PropertyDiff
+from datetime import datetime
+from stackdrift.models import (
+    DetectionStatus,
+    StackStatus,
+    ResourceStatus,
+    DiffType,
+    PropertyDiff,
+    ResourceDrift,
+)
 
 
 def test_detection_status_values():
@@ -66,6 +74,67 @@ def test_property_diff_is_frozen():
 
     try:
         diff.expected_value = "changed"
+        assert False, "Should not be able to modify frozen dataclass"
+    except AttributeError:
+        pass  # Expected
+
+
+def test_resource_drift_creation():
+    """Test ResourceDrift dataclass can be created with all fields."""
+    timestamp = datetime(2026, 2, 25, 13, 30, 0)
+
+    drift = ResourceDrift(
+        logical_id="MyQueue",
+        physical_id="https://sqs.us-east-1.amazonaws.com/123456789012/my-queue",
+        resource_type="AWS::SQS::Queue",
+        status=ResourceStatus.MODIFIED,
+        property_diffs=[
+            PropertyDiff(
+                property_path="/Properties/DelaySeconds",
+                expected_value="0",
+                actual_value="5",
+                diff_type=DiffType.NOT_EQUAL
+            )
+        ],
+        timestamp=timestamp
+    )
+
+    assert drift.logical_id == "MyQueue"
+    assert drift.physical_id == "https://sqs.us-east-1.amazonaws.com/123456789012/my-queue"
+    assert drift.resource_type == "AWS::SQS::Queue"
+    assert drift.status == ResourceStatus.MODIFIED
+    assert len(drift.property_diffs) == 1
+    assert drift.timestamp == timestamp
+
+
+def test_resource_drift_in_sync_has_empty_diffs():
+    """Test ResourceDrift with IN_SYNC status can have empty property_diffs."""
+    drift = ResourceDrift(
+        logical_id="MyBucket",
+        physical_id="my-bucket-name",
+        resource_type="AWS::S3::Bucket",
+        status=ResourceStatus.IN_SYNC,
+        property_diffs=[],
+        timestamp=datetime.now()
+    )
+
+    assert drift.status == ResourceStatus.IN_SYNC
+    assert drift.property_diffs == []
+
+
+def test_resource_drift_is_frozen():
+    """Test ResourceDrift is immutable."""
+    drift = ResourceDrift(
+        logical_id="Test",
+        physical_id="test-id",
+        resource_type="AWS::Test::Resource",
+        status=ResourceStatus.IN_SYNC,
+        property_diffs=[],
+        timestamp=datetime.now()
+    )
+
+    try:
+        drift.status = ResourceStatus.MODIFIED
         assert False, "Should not be able to modify frozen dataclass"
     except AttributeError:
         pass  # Expected
