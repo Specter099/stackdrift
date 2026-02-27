@@ -1,5 +1,6 @@
 """Output formatters for drift detection results."""
 
+import io
 import json
 
 from rich.console import Console
@@ -129,7 +130,8 @@ def format_table(analyzed: list[AnalyzedDrift], *, redact: bool = False) -> str:
     if not analyzed:
         return "No drift detected."
 
-    console = Console(record=True, width=120)
+    buffer = io.StringIO()
+    console = Console(file=buffer, width=120)
     tree = Tree("[bold]Drift Report[/bold]")
 
     for a in analyzed:
@@ -163,4 +165,4 @@ def format_table(analyzed: list[AnalyzedDrift], *, redact: bool = False) -> str:
                 )
 
     console.print(tree)
-    return console.export_text()
+    return buffer.getvalue()
