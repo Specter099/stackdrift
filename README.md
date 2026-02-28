@@ -53,6 +53,32 @@ stackdrift --post-github-pr 42
 stackdrift --max-concurrent 5
 ```
 
+## Reading the Output
+
+Property diffs are shown as `expected → actual`. A value of `null` means the property is **absent** on that side:
+
+| Pattern | Meaning |
+|---|---|
+| `null → "value"` | Property exists on the live resource but **not in the template** — added out-of-band |
+| `"value" → null` | Property is in the template but **missing from the live resource** — removed out-of-band |
+
+**Examples:**
+
+```
+/Parameters/3: null → {"ParameterKey":"ExistingOIDCProviderArn","ParameterValue":""}
+```
+An extra parameter was added directly to the StackSet, not through CloudFormation.
+
+```
+/TargetIds/0: ou-350a-kg3vy772 → null
+```
+That OU target was detached from the SCP directly in AWS — CloudFormation still expects it.
+
+```
+/KmsMasterKeyId: alias/aws/sns → null
+```
+The SNS topic's KMS encryption key was removed outside of CloudFormation.
+
 ## Required IAM Permissions
 
 ```json
