@@ -1,19 +1,20 @@
 # stackdrift
 
-A pip-installable CloudFormation drift detector. Detects when deployed AWS resources have drifted from their CloudFormation template definitions.
+A pip-installable CloudFormation drift detector. Detects when deployed AWS resources have drifted from their CloudFormation template definitions, with property-level diffs and optional Slack/GitHub integrations.
 
 [![CI](https://github.com/Specter099/stackdrift/actions/workflows/ci.yml/badge.svg)](https://github.com/Specter099/stackdrift/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/stackdrift)](https://pypi.org/project/stackdrift/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## Features
 
-- Detects drift across all stacks in your AWS account (or a filtered subset)
-- Property-level diffs with human-readable annotations
+- Detects drift across all stacks in an AWS account, or a filtered subset by name, prefix, or tag
+- Property-level diffs — shows exactly which resource properties changed and what the expected vs. actual values are
 - Concurrent drift detection (configurable, default: 5 simultaneous)
-- Rich terminal output (tree view), JSON, and Markdown formats
-- Slack webhook integration
-- GitHub PR comment integration
-- CI-friendly: exits with code 1 when drift is detected
+- Rich color terminal output (tree view), JSON, and Markdown formats
+- Slack webhook and GitHub PR comment integrations
+- `--redact-values` flag to suppress sensitive values from output and reports
+- CI-friendly exit codes: `0` no drift, `1` drift detected, `2` detection failure
 
 ## Installation
 
@@ -24,33 +25,42 @@ pip install stackdrift
 ## Usage
 
 ```bash
-# Check all stacks
+# Check all stacks in the account
 stackdrift
 
-# Check specific stacks
+# Check specific stacks by name
 stackdrift --stack my-stack
 stackdrift --stack my-stack-1 --stack my-stack-2
 
-# Filter by prefix or tag
+# Filter stacks by name prefix or tag
 stackdrift --prefix prod-
 stackdrift --tag Environment=prod
 
-# Show only drifted stacks
+# Show only stacks with drift (suppress IN_SYNC stacks)
 stackdrift --drifted-only
 
+# AWS region (defaults to AWS_DEFAULT_REGION / ~/.aws/config)
+stackdrift --region us-east-1
+
 # Output formats
-stackdrift --format table    # default (Rich tree)
+stackdrift --format table     # default — colored Rich tree
 stackdrift --format json
 stackdrift --format markdown
 
-# Post to Slack (requires STACKDRIFT_SLACK_WEBHOOK env var)
+# Suppress sensitive expected/actual values in all output
+stackdrift --redact-values
+
+# Suppress warning messages (show only errors)
+stackdrift --quiet
+
+# Control how many stacks are checked concurrently (1–50)
+stackdrift --max-concurrent 10
+
+# Post report to Slack (requires STACKDRIFT_SLACK_WEBHOOK env var)
 stackdrift --post-slack
 
-# Post as GitHub PR comment (requires GITHUB_TOKEN, GITHUB_REPO env vars)
+# Post report as a GitHub PR comment (requires GITHUB_TOKEN and GITHUB_REPO env vars)
 stackdrift --post-github-pr 42
-
-# Control concurrency
-stackdrift --max-concurrent 5
 ```
 
 ## Exit Codes
@@ -66,6 +76,14 @@ Useful for CI pipelines:
 ```bash
 stackdrift --drifted-only || echo "Drift detected!"
 ```
+
+## Environment Variables
+
+| Variable | Required for | Description |
+|---|---|---|
+| `STACKDRIFT_SLACK_WEBHOOK` | `--post-slack` | Incoming webhook URL for the target Slack channel |
+| `GITHUB_TOKEN` | `--post-github-pr` | Personal access token or Actions token with `pull_requests: write` |
+| `GITHUB_REPO` | `--post-github-pr` | Repository in `owner/repo` format (e.g. `myorg/myrepo`) |
 
 ## Reading the Output
 
@@ -109,7 +127,7 @@ The SNS topic's KMS encryption key was removed outside of CloudFormation.
 }
 ```
 
-## Development Setup
+## Development
 
 ```bash
 git clone https://github.com/Specter099/stackdrift.git
@@ -117,18 +135,13 @@ cd stackdrift
 python -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
-```
 
-## Running Tests
-
-```bash
+# Run tests
 pytest
-```
 
-## Linting
-
-```bash
+# Lint and format check
 ruff check src/ tests/
+ruff format --check .
 ```
 
 ## Contributing
