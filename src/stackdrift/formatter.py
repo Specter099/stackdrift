@@ -131,7 +131,7 @@ def format_table(analyzed: list[AnalyzedDrift], *, redact: bool = False) -> str:
         return "No drift detected."
 
     buffer = io.StringIO()
-    console = Console(file=buffer, width=120)
+    console = Console(file=buffer, force_terminal=True, width=120)
     tree = Tree("[bold]Drift Report[/bold]")
 
     for a in analyzed:
