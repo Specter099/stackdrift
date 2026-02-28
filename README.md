@@ -53,6 +53,20 @@ stackdrift --post-github-pr 42
 stackdrift --max-concurrent 5
 ```
 
+## Exit Codes
+
+| Code | Meaning |
+|------|---------|
+| `0` | All stacks in sync — no drift detected |
+| `1` | Drift detected in one or more stacks |
+| `2` | Detection failed for one or more stacks (API error, insufficient permissions, etc.), or a required env var was missing (`STACKDRIFT_SLACK_WEBHOOK`, `GITHUB_TOKEN`, `GITHUB_REPO`) |
+
+Useful for CI pipelines:
+
+```bash
+stackdrift --drifted-only || echo "Drift detected!"
+```
+
 ## Reading the Output
 
 Property diffs are shown as `expected → actual`. A value of `null` means the property is **absent** on that side:
