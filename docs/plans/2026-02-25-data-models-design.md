@@ -104,10 +104,11 @@ The smallest unit - represents a single property that drifted.
 @dataclass(frozen=True)
 class PropertyDiff:
     """A single property difference between expected and actual configuration."""
-    property_path: str          # e.g., "/Properties/DelaySeconds"
-    expected_value: str         # From CloudFormation template
-    actual_value: str           # From actual AWS resource
-    diff_type: DiffType         # Currently always NOT_EQUAL
+
+    property_path: str  # e.g., "/Properties/DelaySeconds"
+    expected_value: str  # From CloudFormation template
+    actual_value: str  # From actual AWS resource
+    diff_type: DiffType  # Currently always NOT_EQUAL
 ```
 
 **Design decisions:**
@@ -122,7 +123,7 @@ PropertyDiff(
     property_path="/Properties/DelaySeconds",
     expected_value="0",
     actual_value="5",
-    diff_type=DiffType.NOT_EQUAL
+    diff_type=DiffType.NOT_EQUAL,
 )
 ```
 
@@ -134,12 +135,13 @@ Represents a single CloudFormation resource and all its drift information.
 @dataclass(frozen=True)
 class ResourceDrift:
     """Drift information for a single CloudFormation resource."""
-    logical_id: str                      # CloudFormation logical ID
-    physical_id: str                     # AWS physical resource ID
-    resource_type: str                   # e.g., "AWS::SQS::Queue"
-    status: ResourceStatus               # IN_SYNC, MODIFIED, DELETED, etc.
-    property_diffs: list[PropertyDiff]   # Empty list if IN_SYNC
-    timestamp: datetime                  # When drift detection ran
+
+    logical_id: str  # CloudFormation logical ID
+    physical_id: str  # AWS physical resource ID
+    resource_type: str  # e.g., "AWS::SQS::Queue"
+    status: ResourceStatus  # IN_SYNC, MODIFIED, DELETED, etc.
+    property_diffs: list[PropertyDiff]  # Empty list if IN_SYNC
+    timestamp: datetime  # When drift detection ran
 ```
 
 **Design decisions:**
@@ -155,10 +157,8 @@ ResourceDrift(
     physical_id="https://sqs.us-east-1.amazonaws.com/123456789012/my-queue",
     resource_type="AWS::SQS::Queue",
     status=ResourceStatus.MODIFIED,
-    property_diffs=[
-        PropertyDiff(...)
-    ],
-    timestamp=datetime(2026, 2, 25, 13, 30, 0)
+    property_diffs=[PropertyDiff(...)],
+    timestamp=datetime(2026, 2, 25, 13, 30, 0),
 )
 ```
 
@@ -170,13 +170,14 @@ Represents the final drift detection results for one CloudFormation stack.
 @dataclass(frozen=True)
 class StackDriftResult:
     """Complete drift detection results for a single stack."""
-    stack_id: str                        # Full ARN of the stack
-    stack_name: str                      # Human-readable name
-    stack_status: StackStatus            # DRIFTED, IN_SYNC, etc.
-    resource_drifts: list[ResourceDrift] # All resources checked
-    detection_id: str                    # AWS detection ID
-    timestamp: datetime                  # When detection completed
-    drifted_resource_count: int          # How many resources drifted
+
+    stack_id: str  # Full ARN of the stack
+    stack_name: str  # Human-readable name
+    stack_status: StackStatus  # DRIFTED, IN_SYNC, etc.
+    resource_drifts: list[ResourceDrift]  # All resources checked
+    detection_id: str  # AWS detection ID
+    timestamp: datetime  # When detection completed
+    drifted_resource_count: int  # How many resources drifted
 ```
 
 **Design decisions:**
@@ -195,7 +196,7 @@ StackDriftResult(
     resource_drifts=[...],
     detection_id="b78ac9b0-dec1-11e7-a451-503a3example",
     timestamp=datetime(2026, 2, 25, 13, 30, 0),
-    drifted_resource_count=3
+    drifted_resource_count=3,
 )
 ```
 
@@ -207,14 +208,15 @@ Represents an in-progress drift detection operation (used during polling).
 @dataclass(frozen=True)
 class DetectionRun:
     """Tracks an in-progress drift detection operation for polling."""
-    detection_id: str                    # AWS detection ID
-    stack_id: str                        # Full ARN of the stack
-    stack_name: str                      # Human-readable name
-    status: DetectionStatus              # IN_PROGRESS, COMPLETE, FAILED
-    started_at: datetime                 # When detection was initiated
-    stack_status: Optional[StackStatus] = None          # None until COMPLETE
-    drifted_resource_count: Optional[int] = None        # None until COMPLETE
-    status_reason: Optional[str] = None                 # Explanation if FAILED
+
+    detection_id: str  # AWS detection ID
+    stack_id: str  # Full ARN of the stack
+    stack_name: str  # Human-readable name
+    status: DetectionStatus  # IN_PROGRESS, COMPLETE, FAILED
+    started_at: datetime  # When detection was initiated
+    stack_status: Optional[StackStatus] = None  # None until COMPLETE
+    drifted_resource_count: Optional[int] = None  # None until COMPLETE
+    status_reason: Optional[str] = None  # Explanation if FAILED
 ```
 
 **Design decisions:**

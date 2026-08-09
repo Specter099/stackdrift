@@ -46,12 +46,11 @@ from urllib.parse import urlparse
 
 ALLOWED_SLACK_HOSTS = {"hooks.slack.com", "hooks.slack-gov.com"}
 
+
 def post_to_slack(report: str, webhook_url: str) -> None:
     parsed = urlparse(webhook_url)
     if parsed.hostname not in ALLOWED_SLACK_HOSTS:
-        raise ValueError(
-            f"Invalid Slack webhook URL: host must be one of {ALLOWED_SLACK_HOSTS}"
-        )
+        raise ValueError(f"Invalid Slack webhook URL: host must be one of {ALLOWED_SLACK_HOSTS}")
     if parsed.scheme != "https":
         raise ValueError("Slack webhook URL must use HTTPS")
     # ...
@@ -77,6 +76,7 @@ A malicious `GITHUB_REPO` value (e.g., `../../../api/v3/admin`) could manipulate
 import re
 
 REPO_PATTERN = re.compile(r"^[a-zA-Z0-9._-]+/[a-zA-Z0-9._-]+$")
+
 
 def post_to_github_pr(body: str, repo: str, pr_number: int, token: str) -> None:
     if not REPO_PATTERN.match(repo):
