@@ -157,6 +157,7 @@ Append to `src/stackdrift/models.py` after the ResourceDrift class:
 @dataclass(frozen=True)
 class StackDriftResult:
     """Complete drift detection results for a single stack."""
+
     stack_id: str
     stack_name: str
     stack_status: StackStatus
@@ -169,6 +170,7 @@ class StackDriftResult:
 @dataclass(frozen=True)
 class DetectionRun:
     """Tracks an in-progress drift detection operation for polling."""
+
     detection_id: str
     stack_id: str
     stack_name: str
@@ -206,6 +208,7 @@ Create `tests/conftest.py`:
 
 ```python
 """Shared test fixtures."""
+
 import boto3
 import pytest
 from moto import mock_aws
@@ -254,6 +257,7 @@ Create `tests/test_client.py`:
 
 ```python
 """Tests for CloudFormationClient."""
+
 import boto3
 import pytest
 from moto import mock_aws
@@ -339,9 +343,7 @@ def test_list_stacks_specific_names(aws_credentials):
 def test_detect_drift_returns_detection_run(aws_credentials):
     """detect_drift calls DetectStackDrift and returns a DetectionRun."""
     mock_boto = MagicMock()
-    mock_boto.detect_stack_drift.return_value = {
-        "StackDriftDetectionId": "detection-123"
-    }
+    mock_boto.detect_stack_drift.return_value = {"StackDriftDetectionId": "detection-123"}
     mock_boto.describe_stacks.return_value = {
         "Stacks": [{"StackId": "arn:aws:cloudformation:us-east-1:123:stack/my-stack/uuid"}]
     }
@@ -455,6 +457,7 @@ Create `src/stackdrift/aws/client.py`:
 
 ```python
 """Thin boto3 wrapper for CloudFormation drift detection API calls."""
+
 import boto3
 from datetime import datetime, timezone
 
@@ -626,6 +629,7 @@ Create `tests/test_detector.py`:
 
 ```python
 """Tests for the drift detection orchestrator."""
+
 from datetime import datetime, timezone
 from unittest.mock import MagicMock, call
 
@@ -662,9 +666,7 @@ def _make_detection_run(stack_name, status=DetectionStatus.IN_PROGRESS, **kwargs
 
 def test_detect_single_stack_in_sync(mock_cfn_client):
     """Detect a single stack with no drift."""
-    mock_cfn_client.list_stacks.return_value = [
-        {"stack_name": "my-stack", "stack_id": "arn:..."}
-    ]
+    mock_cfn_client.list_stacks.return_value = [{"stack_name": "my-stack", "stack_id": "arn:..."}]
     mock_cfn_client.detect_drift.return_value = _make_detection_run("my-stack")
     mock_cfn_client.poll_detection.return_value = _make_detection_run(
         "my-stack",
@@ -727,9 +729,7 @@ def test_detect_multiple_stacks_concurrent(mock_cfn_client):
     mock_cfn_client.list_stacks.return_value = [
         {"stack_name": f"stack-{i}", "stack_id": f"arn:{i}"} for i in range(3)
     ]
-    mock_cfn_client.detect_drift.side_effect = [
-        _make_detection_run(f"stack-{i}") for i in range(3)
-    ]
+    mock_cfn_client.detect_drift.side_effect = [_make_detection_run(f"stack-{i}") for i in range(3)]
     mock_cfn_client.poll_detection.side_effect = [
         _make_detection_run(
             f"stack-{i}",
@@ -750,9 +750,7 @@ def test_detect_multiple_stacks_concurrent(mock_cfn_client):
 
 def test_detect_polls_until_complete(mock_cfn_client):
     """Detector polls until detection completes."""
-    mock_cfn_client.list_stacks.return_value = [
-        {"stack_name": "slow-stack", "stack_id": "arn:..."}
-    ]
+    mock_cfn_client.list_stacks.return_value = [{"stack_name": "slow-stack", "stack_id": "arn:..."}]
     mock_cfn_client.detect_drift.return_value = _make_detection_run("slow-stack")
     mock_cfn_client.poll_detection.side_effect = [
         _make_detection_run("slow-stack", status=DetectionStatus.IN_PROGRESS),
@@ -775,9 +773,7 @@ def test_detect_polls_until_complete(mock_cfn_client):
 
 def test_detect_failed_stack_excluded(mock_cfn_client):
     """Failed detections are excluded from results."""
-    mock_cfn_client.list_stacks.return_value = [
-        {"stack_name": "bad-stack", "stack_id": "arn:..."}
-    ]
+    mock_cfn_client.list_stacks.return_value = [{"stack_name": "bad-stack", "stack_id": "arn:..."}]
     mock_cfn_client.detect_drift.return_value = _make_detection_run("bad-stack")
     mock_cfn_client.poll_detection.return_value = _make_detection_run(
         "bad-stack",
@@ -820,6 +816,7 @@ Create `src/stackdrift/detector.py`:
 
 ```python
 """Orchestrates concurrent CloudFormation drift detection."""
+
 import logging
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -869,10 +866,7 @@ class Detector:
         results: list[StackDriftResult] = []
 
         with ThreadPoolExecutor(max_workers=self._max_concurrent) as executor:
-            futures = {
-                executor.submit(self._detect_stack, s["stack_name"]): s
-                for s in stacks
-            }
+            futures = {executor.submit(self._detect_stack, s["stack_name"]): s for s in stacks}
             for future in as_completed(futures):
                 stack_info = futures[future]
                 try:
@@ -951,6 +945,7 @@ Create `tests/test_analyzer.py`:
 
 ```python
 """Tests for severity classification analyzer."""
+
 from datetime import datetime
 
 from stackdrift.analyzer import Severity, AnalyzedDrift, analyze_results
@@ -977,7 +972,9 @@ def _make_resource_drift(resource_type, status=ResourceStatus.MODIFIED):
                 actual_value="b",
                 diff_type=DiffType.NOT_EQUAL,
             )
-        ] if status == ResourceStatus.MODIFIED else [],
+        ]
+        if status == ResourceStatus.MODIFIED
+        else [],
         timestamp=datetime(2026, 2, 25, 13, 30, 0),
     )
 
@@ -1089,6 +1086,7 @@ Create `src/stackdrift/analyzer.py`:
 
 ```python
 """Severity classification for CloudFormation drift results."""
+
 from dataclasses import dataclass
 from enum import IntEnum
 
@@ -1097,6 +1095,7 @@ from stackdrift.models import ResourceStatus, StackDriftResult
 
 class Severity(IntEnum):
     """Drift severity level. Higher value = more severe."""
+
     LOW = 1
     MEDIUM = 2
     HIGH = 3
@@ -1137,6 +1136,7 @@ SEVERITY_MAP: dict[str, Severity] = {
 @dataclass(frozen=True)
 class AnalyzedDrift:
     """A StackDriftResult annotated with severity classifications."""
+
     result: StackDriftResult
     resource_severities: dict[str, Severity]
     stack_severity: Severity | None
@@ -1196,6 +1196,7 @@ Create `tests/test_formatter.py`:
 
 ```python
 """Tests for output formatters."""
+
 import json
 from datetime import datetime
 
@@ -1326,6 +1327,7 @@ Create `src/stackdrift/formatter.py`:
 
 ```python
 """Output formatters for drift detection results."""
+
 import json
 
 from rich.console import Console
@@ -1345,9 +1347,7 @@ SEVERITY_COLORS = {
 
 def format_json(analyzed: list[AnalyzedDrift]) -> str:
     """Format results as JSON."""
-    drifted_count = sum(
-        1 for a in analyzed if a.result.stack_status == StackStatus.DRIFTED
-    )
+    drifted_count = sum(1 for a in analyzed if a.result.stack_status == StackStatus.DRIFTED)
 
     stacks = []
     for a in analyzed:
@@ -1355,30 +1355,34 @@ def format_json(analyzed: list[AnalyzedDrift]) -> str:
         for rd in a.result.resource_drifts:
             if rd.status == ResourceStatus.IN_SYNC:
                 continue
-            resources.append({
-                "logical_id": rd.logical_id,
-                "physical_id": rd.physical_id,
-                "resource_type": rd.resource_type,
-                "status": rd.status.value,
-                "severity": a.resource_severities.get(rd.logical_id, Severity.LOW).name,
-                "property_diffs": [
-                    {
-                        "property_path": pd.property_path,
-                        "expected_value": pd.expected_value,
-                        "actual_value": pd.actual_value,
-                    }
-                    for pd in rd.property_diffs
-                ],
-            })
+            resources.append(
+                {
+                    "logical_id": rd.logical_id,
+                    "physical_id": rd.physical_id,
+                    "resource_type": rd.resource_type,
+                    "status": rd.status.value,
+                    "severity": a.resource_severities.get(rd.logical_id, Severity.LOW).name,
+                    "property_diffs": [
+                        {
+                            "property_path": pd.property_path,
+                            "expected_value": pd.expected_value,
+                            "actual_value": pd.actual_value,
+                        }
+                        for pd in rd.property_diffs
+                    ],
+                }
+            )
 
-        stacks.append({
-            "stack_name": a.result.stack_name,
-            "stack_id": a.result.stack_id,
-            "status": a.result.stack_status.value,
-            "severity": a.stack_severity.name if a.stack_severity else None,
-            "drifted_resource_count": a.result.drifted_resource_count,
-            "resources": resources,
-        })
+        stacks.append(
+            {
+                "stack_name": a.result.stack_name,
+                "stack_id": a.result.stack_id,
+                "status": a.result.stack_status.value,
+                "severity": a.stack_severity.name if a.stack_severity else None,
+                "drifted_resource_count": a.result.drifted_resource_count,
+                "resources": resources,
+            }
+        )
 
     return json.dumps(
         {
@@ -1510,6 +1514,7 @@ Create `tests/test_integrations.py`:
 
 ```python
 """Tests for Slack and GitHub integrations."""
+
 from unittest.mock import patch, MagicMock
 
 import pytest
@@ -1579,6 +1584,7 @@ Create `src/stackdrift/integrations/slack.py`:
 
 ```python
 """Post drift reports to Slack via incoming webhook."""
+
 import requests
 
 
@@ -1598,6 +1604,7 @@ Create `src/stackdrift/integrations/github.py`:
 
 ```python
 """Post drift reports as GitHub PR comments."""
+
 import requests
 
 
@@ -1652,6 +1659,7 @@ Create `tests/test_cli.py`:
 
 ```python
 """Tests for the CLI entrypoint."""
+
 from unittest.mock import patch, MagicMock
 from datetime import datetime
 
@@ -1853,6 +1861,7 @@ Create `src/stackdrift/cli.py`:
 
 ```python
 """CLI entrypoint for stackdrift."""
+
 import os
 import sys
 
@@ -1883,7 +1892,17 @@ from stackdrift.models import StackStatus
 @click.option("--post-github-pr", type=int, default=None, help="Post report as GitHub PR comment.")
 @click.option("--max-concurrent", type=int, default=5, help="Max concurrent drift detections.")
 @click.option("--region", default=None, help="AWS region.")
-def main(stack, prefix, tag, drifted_only, output_format, post_slack, post_github_pr, max_concurrent, region):
+def main(
+    stack,
+    prefix,
+    tag,
+    drifted_only,
+    output_format,
+    post_slack,
+    post_github_pr,
+    max_concurrent,
+    region,
+):
     """Detect CloudFormation stack drift."""
     tags = None
     if tag:
